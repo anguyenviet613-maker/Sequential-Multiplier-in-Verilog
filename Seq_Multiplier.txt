@@ -1,0 +1,62 @@
+`timescale 1ns / 1ps
+
+module seq_multiplier (
+    input wire clk,
+    input wire rst,
+    input wire start,
+    input wire [3:0] multiplicand,
+    input wire [3:0] multiplier,
+    output wire [7:0] product,
+    output reg done
+);
+
+    reg [3:0] A;       // first 4 MSB bit of the sum
+    reg [3:0] Q;       // multiplier 
+    reg [3:0] M;       // multiplicand 
+    reg [1:0] count;   // 4-step counter
+    reg running;       // FSM active flag
+
+    // 5-bit wire to catch any overflow bit and also allow the code to do a right shift
+    wire [4:0] add_result = A + M; 
+    
+    // The final product
+    assign product = {A, Q};
+
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            A <= 4'd0;
+            Q <= 4'd0;
+            M <= 4'd0;
+            count <= 2'd0;
+            running <= 1'b0;
+            done <= 1'b0;
+        end
+        else if (start && !running) begin
+            // start: load A, Q and M
+            running <= 1'b1;
+            done <= 1'b0;
+            count <= 2'd0;
+            A <= 4'd0;            
+            Q <= multiplier;      
+            M <= multiplicand;    
+        end
+        else if (running) begin
+            // run: Partial Sum
+            if (Q[0] == 1'b1) begin
+                // this line of code both add and shift right respectively
+                {A, Q} <= {add_result, Q[3:1]};
+            end else begin
+                // this line just shift right without adding A (just adding 0)
+                {A, Q} <= {1'b0, A, Q[3:1]};
+            end
+            
+            count <= count + 2'd1;
+            
+            // stop after 4 cycles
+            if (count == 2'd3) begin
+                running <= 1'b0;
+                done <= 1'b1;
+            end
+        end
+    end
+endmodule
