@@ -1,0 +1,99 @@
+`timescale 1ns / 1ps
+
+module tb_seq_multiplier;
+
+    reg clk;
+    reg rst;
+    reg start;
+    reg [3:0] multiplicand;
+    reg [3:0] multiplier;
+
+    wire [7:0] product;
+    wire done;
+
+    //Declare an integer to track failed tests ---
+    integer error_count;
+
+    seq_multiplier uut (
+        .clk(clk),
+        .rst(rst),
+        .start(start),
+        .multiplicand(multiplicand),
+        .multiplier(multiplier),
+        .product(product),
+        .done(done)
+    );
+
+    always #5 clk = ~clk;
+
+    initial begin
+        clk = 0;
+        rst = 1;
+        start = 0;
+        multiplicand = 4'd0;
+        multiplier = 4'd0;
+        error_count = 0;     // set the tracker to zero
+
+        #20; 
+        rst = 0;
+        #10;
+        
+        $display("--------------------------------");
+        $display("Results");
+        $display("--------------------------------");
+
+        // --- PART 1: Standard Math Test (12 x 5 = 60) ---
+        $display("PART 1: Testing 12 x 5");
+        multiplicand = 4'd12;
+        multiplier = 4'd5;
+        
+        start = 1;       
+        #10;             
+        start = 0;       
+        
+        wait(done == 1'b1);
+        #10;             
+        
+        $display("Result: %d x %d = %d", multiplicand, multiplier, product);
+        
+        // Validation for Part 1
+        if (product != 8'd60) begin
+            $display("-> ERROR: Expected 60, but got %d", product);
+            error_count = error_count + 1;
+        end
+        
+        
+        // --- PART 2: Maximum Value Test (15 x 15 = 225) ---
+        $display("PART 2: Testing 15 x 15");
+        multiplicand = 4'd15;
+        multiplier = 4'd15;
+        
+        start = 1;       
+        #10;             
+        start = 0;       
+        
+        wait(done == 1'b1);
+        #10;
+        
+        $display("Result: %d x %d = %d", multiplicand, multiplier, product);
+
+        // Validation for Part 2
+        if (product != 8'd225) begin
+            $display("-> ERROR: Expected 225, but got %d", product);
+            error_count = error_count + 1;
+        end
+
+
+        // --- FINAL EVALUATION ---
+        $display("--------------------------------");
+        if (error_count == 0) begin
+            $display("PASS");
+        end else begin
+            $display("FAIL: %d errors found!", error_count);
+        end
+        $display("--------------------------------");
+        
+        $finish; 
+    end
+
+endmodule
